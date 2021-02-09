@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/maxim/Documents/project/file-synchronizer/main.cpp
+iostream
+-
+string
+-
+vector
+-
+unordered_map
+-
+utility
+-
+
