@@ -1,1 +1,0 @@
-/usr/bin/g++  -g   CMakeFiles/file_synchronizer.dir/main.cpp.o  -o file_synchronizer 

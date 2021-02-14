@@ -13,12 +13,20 @@ enum algorithm { R, H };
 
 std::hash<std::string> hash_h;
 
-typedef struct Data {
-    bool found;
-    int64_t from;
-    int64_t chunk;
-    std::string str;
-} Data;
+typedef struct  DataBlock {
+    int64_t offset;
+    std::string data;
+} DataBlock;
+
+typedef struct MatchedBlock {
+    int64_t index;
+    int64_t offset;
+} MatchedBlock;
+
+typedef struct DiffData {
+    std::vector<DataBlock> data_blocks;
+    std::vector<MatchedBlock> matched_blocks;
+} DiffData;
 
 class Client {
 private:
@@ -68,46 +76,71 @@ public:
         return v;
     }
 
-    std::vector<Data> compute_likelihood(const std::vector<uint64_t> tbl_r, const std::vector<uint64_t> tbl_h) {
+    DiffData compute_diff(const std::vector<uint64_t> &v_r, const std::vector<uint64_t> &v_h) {
         std::string substr = "";
-        int64_t begin = 0;
-        std::vector<Data> data;
-        for (int64_t i = 0; i < str.size(); ++i) {
+        int64_t data_offset = 0;
+        std::vector<MatchedBlock> matched;
+        std::vector<DataBlock> data;
+        int64_t i = 0;
+        for (i = 0; i < str.size(); ++i) {
             int64_t chunk = std::min(chunk_size, str.size() - i);
             substr = str.substr(i, chunk);
             uint64_t r = xxh::xxhash<64>(substr);
-            if (find(tbl_r, r) != -1) {
+            if (find(v_r, r) != -1) {
                 uint64_t h = hash_h(substr);
-                int64_t indx = find(tbl_h, h);
-//                std::cout << substr << ' ' << indx << ' ' << h << " " << tbl_h[indx] << '\n';
-                if (indx != -1) {
-//                    if (begin < i)
-//                        data.push_back({false, -1, i - begin, str.substr(begin, i-begin)});
-                    data.push_back({true, indx, i, ""});
+                int64_t index = find(v_h, h);
+                if (index != -1) {
+                    matched.push_back({index, i});
+                    if (i != data_offset)
+                        data.push_back({data_offset, str.substr(data_offset, i - data_offset)});
+                    data_offset = i + chunk;
                 }
             }
         }
-        return data;
+        if (i != data_offset)
+            data.push_back({data_offset, str.substr(data_offset, i - data_offset)});
+        return {data, matched};
     }
 
-    void reconstruct_data(std::vector<Data> data) {
-        std::string new_str = "";
-        for (const auto& elem : data) {
-//            if (elem.found == true)
-//                new_str.push_back(str.substr())
+    void reconstruct_data(DiffData data) {
+        std::string new_str;
+        size_t i = 0;
+        size_t j = 0;
+        while (i < data.data_blocks.size() && j < data.matched_blocks.size()) {
+            if (data.data_blocks[i].offset < data.matched_blocks[j].offset) {
+                new_str += data.data_blocks[i].data;
+                ++i;
+            }
+            else {
+                new_str += str.substr(j * chunk_size, std::min(chunk_size, str.size() - j));
+                ++j;
+            }
         }
+
+        while (i < data.data_blocks.size()) {
+            new_str += data.data_blocks[i].data;
+            ++i;
+        }
+        while (j < data.matched_blocks.size()) {
+            new_str += str.substr(j * chunk_size, std::min(chunk_size, str.size() - j));
+            ++j;
+        }
+        str = new_str;
+    }
+
+    std::string to_string() {
+        return str;
     }
 };
 
 int main() {
-    Client A = Client("aaabbccddee", 3);
-    Client B = Client("aabbccddee", 3);
+    Client A = Client("aaabbcchhddeeg", 3);
+    Client B = Client("aabbccddeef", 3);
     auto tbl_r = B.send_hash_tbl(0, R);
     auto tbl_h = B.send_hash_tbl(0, H);
-    auto v = A.compute_likelihood(tbl_r, tbl_h);
-    for (auto &x : v) {
-        std::cout << (x.found ? "true" : "false") << " block number: " << x.from << " shift: " << x.chunk << " " << x.str << '\n';
-    }
+    auto v = A.compute_diff(tbl_r, tbl_h);
     B.reconstruct_data(v);
+    std:: cout << (B.to_string() == A.to_string() ? "true\n" : "false") << '\n';
+    std::cout << B.to_string();
     return 0;
 }
