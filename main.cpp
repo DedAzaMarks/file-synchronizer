@@ -79,6 +79,7 @@ public:
     DiffData compute_diff(const std::vector<uint64_t> &v_r, const std::vector<uint64_t> &v_h) {
         std::string substr = "";
         int64_t data_offset = 0;
+        int64_t last = -1;
         std::vector<MatchedBlock> matched;
         std::vector<DataBlock> data;
         int64_t i = 0;
@@ -90,8 +91,11 @@ public:
                 uint64_t h = hash_h(substr);
                 int64_t index = find(v_h, h);
                 if (index != -1) {
-                    matched.push_back({index, i});
-                    if (i != data_offset)
+                    if (last <= i) {
+                        matched.push_back({index, i});
+                        last = i + chunk;
+                    }
+                    if (i > data_offset)
                         data.push_back({data_offset, str.substr(data_offset, i - data_offset)});
                     data_offset = i + chunk;
                 }
@@ -99,6 +103,12 @@ public:
         }
         if (i != data_offset)
             data.push_back({data_offset, str.substr(data_offset, i - data_offset)});
+//        std::cout << "MATCHED:\n";
+//        for (const auto &x : matched)
+//            std::cout << x.offset << " " <<x.index <<'\n';
+//        std::cout << "DATA:\n";
+//        for (const auto &x : data)
+//            std::cout << x.offset << " " << x.data <<'\n';
         return {data, matched};
     }
 
@@ -112,7 +122,8 @@ public:
                 ++i;
             }
             else {
-                new_str += str.substr(j * chunk_size, std::min(chunk_size, str.size() - j));
+                new_str += str.substr(data.matched_blocks[j].index * chunk_size,
+                                      std::min(chunk_size, str.size() - data.matched_blocks[j].index));
                 ++j;
             }
         }
@@ -122,7 +133,8 @@ public:
             ++i;
         }
         while (j < data.matched_blocks.size()) {
-            new_str += str.substr(j * chunk_size, std::min(chunk_size, str.size() - j));
+            new_str += str.substr(data.matched_blocks[j].index * chunk_size,
+                                  std::min(chunk_size, str.size() - data.matched_blocks[j].index));
             ++j;
         }
         str = new_str;
@@ -134,13 +146,43 @@ public:
 };
 
 int main() {
-    Client A = Client("aaabbcchhddeeg", 3);
-    Client B = Client("aabbccddeef", 3);
-    auto tbl_r = B.send_hash_tbl(0, R);
-    auto tbl_h = B.send_hash_tbl(0, H);
-    auto v = A.compute_diff(tbl_r, tbl_h);
-    B.reconstruct_data(v);
-    std:: cout << (B.to_string() == A.to_string() ? "true\n" : "false") << '\n';
-    std::cout << B.to_string();
+    std::vector<std::pair<Client, Client>> tests = {
+            {{"", 3}, {"", 3}},
+            {{"", 3}, {"a", 3}},
+            {{"", 3}, {"aaa", 3}},
+            {{"", 3}, {"aaaaaaaaaaaaaaaa", 3}},
+            {{"a", 3}, {"", 3}},
+            {{"aaa", 3}, {"", 3}},
+            {{"a", 3}, {"b", 3}},
+            {{"aaa", 3}, {"bbb", 3}},
+            {{"aaaaaaaa", 3}, {"bbbbbbbbbbbbbbbbbb", 3}},
+            {{"aaaaaaaaaaaaaaaaaaaaaaa", 3}, {"bbbbbbbbb", 3}},
+    };
+//    auto tbl_r = B.send_hash_tbl(0, R);
+//    auto tbl_h = B.send_hash_tbl(0, H);
+//    auto v = A.compute_diff(tbl_r, tbl_h);
+//    B.reconstruct_data(v);
+//    std:: cout << (B.to_string() == A.to_string() ? "true" : "false") << '\n';
+//    std::cout << A.to_string() << '\n';
+//    std::cout << B.to_string();
+
+    for (const auto &test : tests) {
+        Client A = test.first;
+        Client B = test.second;
+        auto tbl_r = B.send_hash_tbl(0, R);
+        auto tbl_h = B.send_hash_tbl(0, H);
+        auto v = A.compute_diff(tbl_r, tbl_h);
+        B.reconstruct_data(v);
+//        std:: cout << (B.to_string() == A.to_string() ? "true" : "false") << '\n';
+
+        if (B.to_string() != A.to_string()) {
+            std::cout << "WA\n";
+            std::cout << A.to_string() << '\n' << B.to_string() << '\n';
+        } else {
+            std::cout << "OK\n";
+        }
+//    std::cout << A.to_string() << '\n';
+//    std::cout << B.to_string();
+    }
     return 0;
 }
