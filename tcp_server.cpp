@@ -55,6 +55,10 @@ public:
             uint32_t sz = 0;
             uint32_t fileNameSize = 0;
 	    std::cout << "begin: " << ss.receiveBytes(&b, 4) << '\n';
+	    if (b == 251) {
+	    	std::cerr << "Client err\n";
+		return;
+	    }
 	    ss.receiveBytes(&sz, 4);
 	    std::unique_ptr<char[]> fileName(new char[sz+1]);
 	    ss.receiveBytes(fileName.get(), sz);
