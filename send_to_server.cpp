@@ -63,43 +63,43 @@ size_t receive_dd(Poco::Net::StreamSocket& ss, DiffData& dd) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 4) {
+    if (argc < 3) {
         std::cerr << "NEED: IP ans PORT and FILE\n OPTIONALY: CHUNK_SIZE\n";
         exit(1);
     }
 
     uint32_t chunk_size = 0;
-    if (argc < 5) {
+    if (argc < 4) {
         chunk_size = 256;
     } else {
-        chunk_size = strtoll(argv[4], NULL, 10);
+        chunk_size = strtoll(argv[3], NULL, 10);
     }
 
     srand(time(NULL));
-    Poco::Net::SocketAddress sa(argv[1], strtol(argv[2], NULL, 10));
+    Poco::Net::SocketAddress sa(argv[1], 6101);
     Poco::Net::StreamSocket ss(sa);
 
     uint32_t begin = 2;
     uint8_t end = 251;
     uint32_t res = 0;
-    std::ifstream file(argv[3], std::ios::in | std::ios::binary);
+    std::ifstream file(argv[2], std::ios::in | std::ios::binary);
     if (!file.is_open()) {
         ss.sendBytes(&end, 1);
-        std::cerr << "Failed to open " << argv[3] << "\n";
+        std::cerr << "Failed to open " << argv[2] << "\n";
         exit(1);
     }
     constexpr size_t bufferSize = 64*1024*1024;
     std::unique_ptr<char[]> buffer(new char[bufferSize]);
 
-    uint32_t sz = strlen(argv[3]);
+    uint32_t sz = strlen(argv[2]);
     ss.sendBytes(&begin, 4);
     ss.sendBytes(&sz, 4);
-    ss.sendBytes(argv[3], sz);
+    ss.sendBytes(argv[2], sz);
 
     ss.receiveBytes(&res, 1);
 
     if (res == 1) {
-        std::cerr << "Remote machine has no such file: " << argv[3] << '\n';
+        std::cerr << "Remote machine has no such file: " << argv[2] << '\n';
         exit(1);
     }
 
@@ -112,14 +112,18 @@ int main(int argc, char* argv[]) {
     DiffData dd;
     std::cout << "RECEIVED: " << receive_dd(ss, dd) << '\n';
 
+
+    std::cout << "db_sz = " << dd.data_blocks.size() << "\n";
+    std::cout << "mb_sz = " << dd.matched_blocks.size() << "\n";
+
     //for (const auto& x : dd.matched_blocks) {
     //    std::cout << x.offset << " " << x.index << "\n";
     //}
-    //for (const auto& x : dd.data_blocks) {
-    //    std::cout << x.offset << " " << x.data << "\n";
-    //}
+    for (const auto& x : dd.data_blocks) {
+        std::cout << x.offset << " " << x.data << "\n";
+    }
 
-    reconstruct_data(argv[3], dd, chunk_size, bufferSize);
+    reconstruct_data(argv[2], dd, chunk_size, bufferSize);
 
     ss.sendBytes(&end, 1);
 
