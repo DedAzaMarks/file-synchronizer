@@ -20,7 +20,7 @@ typedef struct hash_r {
     uint64_t r_block(std::unique_ptr<char[]>& buf, size_t k, size_t L) {
         r_1_block(buf, k, L);
         r_2_block(buf, k, L);
-        return (r1 + r2) & mod;
+        return (r1 + r2) % mod;
     }
 
     void r_1(std::unique_ptr<char[]>& buf, size_t k, size_t L) {

@@ -27,6 +27,7 @@ public:
         for (i = from; i < str.size(); i += chunk_size) {
             substr = str.substr(i, std::min<uint32_t>(chunk_size, str.size() - i));
             uint32_t chunk = std::min<uint32_t>(chunk_size, str.size() - i);
+            std::cout << substr << " " << hr.r_block(buf, i, chunk) << "\n";
             R[hr.r_block(buf, i, chunk)] = i / chunk_size + shift / chunk_size;
             H[hash_h(substr)] = i / chunk_size + shift / chunk_size;
         }
