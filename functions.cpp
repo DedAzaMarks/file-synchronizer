@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "xxhash.c"
 #include "Client.cpp"
 #include "types.h"
 
@@ -15,23 +16,21 @@ Client file_to_hash(std::ifstream& file, uint32_t chunk_size, size_t bufferSize)
         file.read(buffer.get(), bufferSize);
         sz = file.gcount();
         std::string str(buffer.get(), sz);
-        client.hash_tbl(buffer, str, 0, page * bufferSize);
+        client.hash_tbl(buffer, sz, page * bufferSize);
         page++;
     }
     return client;
 }
 
-void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, std::string& str, size_t page_offset) {
-    std::string substr = "";
+void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, size_t sz, size_t page_offset) {
     size_t data_offset = 0;
     size_t last = 0;
     size_t i = 0;
     hash_r hr;
-    size_t L = std::min<uint32_t>(client.chunk_size, str.size() - i);
+    size_t L = std::min<uint32_t>(client.chunk_size, sz - i);
     uint64_t r_block = hr.r_block(buf, i, L);
     if (client.R.find(r_block) != client.R.end()) {
-        substr = str.substr(i, L);
-        uint64_t h = xxh::xxhash<64>(substr);
+        XXH64_hash_t h= XXH64(buf.get() + i, L, 0);
         if (client.H.find(h) != client.H.find(h)) {
             size_t index = client.H[h];
             int overlap = 0;
@@ -43,17 +42,16 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, st
             }
             if (i > data_offset)
                 dd.data_blocks.push_back({data_offset + page_offset,
-                        str.substr(data_offset, i - data_offset)});
+                        std::string(buf.get() + data_offset, i - data_offset)});
             if (overlap == 0)
                 data_offset = i + L;
         }
     }
-    for (i = 1; i < str.size(); ++i) {
-        uint32_t chunk = std::min<uint32_t>(client.chunk_size, str.size() - i);
+    for (i = 1; i < sz; ++i) {
+        uint32_t chunk = std::min<uint32_t>(client.chunk_size, sz - i);
         uint64_t r = hr.r(buf, i, chunk);
         if (client.R.find(r) != client.R.end()) {
-            substr = str.substr(i, chunk);
-            uint64_t h = xxh::xxhash<64>(substr);
+            XXH64_hash_t h= XXH64(buf.get() + i, L, 0);
             //if (client.H[h] != 0) {
             if (client.H.find(h) != client.H.end()) {
                 size_t index = client.H[h];
