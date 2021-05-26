@@ -15,7 +15,6 @@ Client file_to_hash(std::ifstream& file, uint32_t chunk_size, size_t bufferSize)
     while (file) {
         file.read(buffer.get(), bufferSize);
         sz = file.gcount();
-        std::string str(buffer.get(), sz);
         client.hash_tbl(buffer, sz, page * bufferSize);
         page++;
     }
@@ -76,7 +75,6 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, si
 
 void reconstruct_data(char* filename, DiffData& data,
                       uint32_t chunk_size, size_t bufferSize) {
-    std::string new_str;
     std::ofstream out("NEW FILE", std::ios::out | std::ios::binary | std::ios::trunc);
     size_t i = 0;
     size_t j = 0;

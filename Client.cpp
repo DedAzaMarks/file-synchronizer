@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include <unordered_map>
-#include <string>
 #include "xxhash.c"
 #include "types.h"
 #include "hash.cpp"
@@ -11,7 +10,6 @@ enum algorithm { R, H };
 class Client {
 public:
     uint32_t chunk_size;
-    std::hash<std::string> hash_h;
 
     std::unordered_map<uint64_t, size_t> R;
     std::unordered_map<uint64_t, size_t> H;
