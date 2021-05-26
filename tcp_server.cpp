@@ -33,22 +33,23 @@ size_t receive_hash_tbl(Client& client, Poco::Net::StreamSocket& ss) {
     return sum;
 }
 
-void send_dd(DiffData& dd, Poco::Net::StreamSocket& ss) {
+size_t send_dd(DiffData& dd, Poco::Net::StreamSocket& ss) {
+    size_t sum = 0;
     size_t db_sz = dd.data_blocks.size();
-    ss.sendBytes(&db_sz, sizeof(size_t));
+    sum += ss.sendBytes(&db_sz, sizeof(size_t));
     for (size_t i = 0; i < db_sz; ++i) {
          size_t sz = dd.data_blocks[i].data.size();
-         ss.sendBytes(&dd.data_blocks[i].offset, sizeof(size_t));
-         ss.sendBytes(&sz, sizeof(size_t));
-         ss.sendBytes(dd.data_blocks[i].data.data(), sz);
+         sum += ss.sendBytes(&dd.data_blocks[i].offset, sizeof(size_t));
+         sum += ss.sendBytes(&sz, sizeof(size_t));
+         sum += ss.sendBytes(dd.data_blocks[i].data.data(), sz);
     }
     size_t mb_sz = dd.matched_blocks.size();
-    ss.sendBytes(&mb_sz, sizeof(mb_sz));
-    std::cout << "mb sz = " << mb_sz << '\n';
+    sum += ss.sendBytes(&mb_sz, sizeof(mb_sz));
     for (size_t i = 0; i < mb_sz; ++i) {
-        ss.sendBytes(&dd.matched_blocks[i].index, sizeof(size_t));
-        ss.sendBytes(&dd.matched_blocks[i].offset, sizeof(size_t));
+        sum += ss.sendBytes(&dd.matched_blocks[i].index, sizeof(size_t));
+        sum += ss.sendBytes(&dd.matched_blocks[i].offset, sizeof(size_t));
     }
+    return sum;
 }
 
 class Server: public Poco::Net::TCPServerConnection {
@@ -99,22 +100,7 @@ public:
             }
             file.close();
 
-            send_dd(dd, ss);
-
-            //while (ss.receiveBytes(&sz, 4) != 1) {
-            //    std::cout << "sz: " << sz << '\n';
-            //    std::unique_ptr<char[]> buffer(new char[1024 * 1024 * 64]);
-            //    size_t tmp = 0;
-            //    while (tmp != sz) {
-            //        tmp += ss.receiveBytes(buffer.get() + tmp, sz - tmp);
-            //    }
-            //    sum += sz;
-            //    std::cout << "OK\n";
-            //    //ss.sendBytes(&ok, 4);
-
-            //    out.write(buffer.get(), sz);
-            //}
-
+            std::cout << send_dd(dd, ss) << "\n";
 
             sz = ss.receiveBytes(&e, 1);
             if (e == end) {
