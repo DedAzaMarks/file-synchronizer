@@ -53,7 +53,6 @@ size_t receive_dd(Poco::Net::StreamSocket& ss, DiffData& dd) {
     }
     size_t mb_sz = 0;
     sum += ss.receiveBytes(&mb_sz, sizeof(mb_sz));
-    std::cout << "mb sz = " << mb_sz << '\n';
     for (size_t i = 0; i < mb_sz; ++i) {
         size_t index = 0, offset = 0;
         sum += ss.receiveBytes(&index, sizeof(index));
@@ -71,7 +70,7 @@ int main(int argc, char* argv[]) {
 
     uint32_t chunk_size = 0;
     if (argc < 5) {
-        chunk_size = 64;
+        chunk_size = 256;
     } else {
         chunk_size = strtoll(argv[4], NULL, 10);
     }
@@ -89,7 +88,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to open " << argv[3] << "\n";
         exit(1);
     }
-    constexpr size_t bufferSize = 1024 * 1024 * 64;
+    constexpr size_t bufferSize = 64*1024*1024;
     std::unique_ptr<char[]> buffer(new char[bufferSize]);
 
     uint32_t sz = strlen(argv[3]);
@@ -113,16 +112,16 @@ int main(int argc, char* argv[]) {
     DiffData dd;
     std::cout << "RECEIVED: " << receive_dd(ss, dd) << '\n';
 
+    //for (const auto& x : dd.matched_blocks) {
+    //    std::cout << x.offset << " " << x.index << "\n";
+    //}
+    //for (const auto& x : dd.data_blocks) {
+    //    std::cout << x.offset << " " << x.data << "\n";
+    //}
 
     reconstruct_data(argv[3], dd, chunk_size, bufferSize);
 
     ss.sendBytes(&end, 1);
-
-    std::ofstream out("dd_got_from_server", std::ios::out | std::ios::binary | std::ios::trunc);
-    for (const auto& x : dd.matched_blocks) {
-        out << x.index << ' ' << x.offset << '\n';
-    }
-    out.close();
 
     return 0;
 }
