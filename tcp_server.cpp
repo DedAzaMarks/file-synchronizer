@@ -94,6 +94,9 @@ public:
             while (file) {
                  file.read(buffer.get(), bufferSize);
                  sz = file.gcount();
+                 if (sz == 0) {
+                     continue;
+                 }
                  compute_diff(dd, client, buffer, sz, page * bufferSize);
                  page++;
             }
@@ -114,7 +117,7 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    Poco::Net::TCPServer srv(new Poco::Net::TCPServerConnectionFactoryImpl<Server>());
+    Poco::Net::TCPServer srv(new Poco::Net::TCPServerConnectionFactoryImpl<Server>(), 6101);
     srv.start();
     std::cout << "Server started at port: " << srv.socket().address().port() << '\n';
     std::cout << "To stop server 'q' expected\n";

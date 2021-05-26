@@ -31,7 +31,7 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, si
     uint64_t r_block = hr.r_block(buf, i, L);
     if (client.R.find(r_block) != client.R.end()) {
         XXH64_hash_t h= XXH64(buf.get() + i, L, 0);
-        if (client.H.find(h) != client.H.find(h)) {
+        if (client.H.find(h) != client.H.end()) {
             size_t index = client.H[h];
             int overlap = 0;
             if (last <= i) {
@@ -51,7 +51,7 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, si
         uint32_t chunk = std::min<uint32_t>(client.chunk_size, sz - i);
         uint64_t r = hr.r(buf, i, chunk);
         if (client.R.find(r) != client.R.end()) {
-            XXH64_hash_t h= XXH64(buf.get() + i, L, 0);
+            XXH64_hash_t h= XXH64(buf.get() + i, chunk, 0);
             //if (client.H[h] != 0) {
             if (client.H.find(h) != client.H.end()) {
                 size_t index = client.H[h];
