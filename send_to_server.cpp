@@ -119,9 +119,9 @@ int main(int argc, char* argv[]) {
     //for (const auto& x : dd.matched_blocks) {
     //    std::cout << x.offset << " " << x.index << "\n";
     //}
-    for (const auto& x : dd.data_blocks) {
-        std::cout << x.offset << " " << x.data << "\n";
-    }
+    //for (const auto& x : dd.data_blocks) {
+    //    std::cout << x.offset << " " << x.data << "\n";
+    //}
 
     reconstruct_data(argv[2], dd, chunk_size, bufferSize);
 
