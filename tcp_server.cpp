@@ -64,7 +64,7 @@ public:
         try {
             //size_t sz = ss.receiveBytes(&b, 1);
             uint32_t sz = 0;
-	    ss.receiveBytes(&b, 4);
+            ss.receiveBytes(&b, 4);
             std::cout << "begin\n";
             if (b == end) {
                 std::cerr << "Client err\n";
@@ -87,16 +87,16 @@ public:
 
             std::ifstream file(fileName.get(), std::ios::in | std::ios::binary);
             Client client(chunk_size);
-	    std::cout << "RECEIVED: " << receive_hash_tbl(client, ss) << '\n';
+            std::cout << "RECEIVED: " << receive_hash_tbl(client, ss) << '\n';
             DiffData dd;
             std::unique_ptr<char[]> buffer(new char[bufferSize]);
-	    size_t page = 0;
+            size_t page = 0;
             while (file) {
                  file.read(buffer.get(), bufferSize);
                  sz = file.gcount();
                  std::string str(buffer.get(), sz);
                  compute_diff(dd, client, buffer, str, page * bufferSize);
-		 page++;
+                 page++;
             }
             file.close();
 

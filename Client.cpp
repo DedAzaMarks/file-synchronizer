@@ -2,7 +2,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <string>
-#include "xxhash.hpp"
+#include "xxhash.c"
 #include "types.h"
 #include "hash.cpp"
 
@@ -20,22 +20,20 @@ public:
         chunk_size = ch_sz;
     }
 
-    void hash_tbl (std::unique_ptr<char[]>& buf, std::string& str, size_t from, uint32_t shift) {
-        std::string substr = str.substr(0, from);
+    void hash_tbl (std::unique_ptr<char[]>& buf, size_t sz, uint32_t shift) {
         hash_r hr;
         size_t i = 0;
-        for (i = from; i < str.size(); i += chunk_size) {
-            substr = str.substr(i, std::min<uint32_t>(chunk_size, str.size() - i));
-            uint32_t chunk = std::min<uint32_t>(chunk_size, str.size() - i);
-            std::cout << substr << " " << hr.r_block(buf, i, chunk) << "\n";
+        for (i = 0; i < sz; i += chunk_size) {
+            uint32_t chunk = std::min<uint32_t>(chunk_size, sz - i);
             R[hr.r_block(buf, i, chunk)] = i / chunk_size + shift / chunk_size;
-            H[hash_h(substr)] = i / chunk_size + shift / chunk_size;
+            XXH64_hash_t hash_h = XXH64(buf.get() + i, chunk, 0);
+            H[hash_h] = i / chunk_size + shift / chunk_size;
         }
-        if (i > str.size()) {
-            substr = str.substr(i - chunk_size, str.size());
-            uint32_t chunk = std::min<uint32_t>(chunk_size, str.size() - i);
-            R[hr.r_block(buf, i, chunk)] = i / chunk_size - 1 + shift / chunk_size;
-            H[hash_h(substr)] = i / chunk_size - 1 + shift / chunk_size;//chunk_size;
-        }
+        //if (i > str.size()) {
+        //    substr = str.substr(i - chunk_size, str.size());
+        //    uint32_t chunk = std::min<uint32_t>(chunk_size, str.size() - i);
+        //    R[hr.r_block(buf, i, chunk)] = i / chunk_size - 1 + shift / chunk_size;
+        //    H[hash_h(substr)] = i / chunk_size - 1 + shift / chunk_size;//chunk_size;
+        //}
     }
 };
