@@ -89,11 +89,13 @@ public:
 	    std::cout << "RECEIVED: " << receive_hash_tbl(client, ss) << '\n';
             DiffData dd;
             std::unique_ptr<char[]> buffer(new char[bufferSize]);
+	    size_t page = 0;
             while (file) {
                  file.read(buffer.get(), bufferSize);
                  sz = file.gcount();
                  std::string str(buffer.get(), sz);
-                 compute_diff(dd, client, str);
+                 compute_diff(dd, client, buffer, str, page * bufferSize);
+		 page++;
             }
             file.close();
 
