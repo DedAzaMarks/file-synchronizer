@@ -15,22 +15,45 @@ Client file_to_hash(std::ifstream& file, uint32_t chunk_size, size_t bufferSize)
         file.read(buffer.get(), bufferSize);
         sz = file.gcount();
         std::string str(buffer.get(), sz);
-        client.hash_tbl(str, 0, page * bufferSize);
+        client.hash_tbl(buffer, str, 0, page * bufferSize);
+        page++;
     }
     return client;
 }
 
-void compute_diff(DiffData& dd, Client& client, std::string& str, uint32_t page_offset) {
+void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, std::string& str, size_t page_offset) {
     std::string substr = "";
     size_t data_offset = 0;
     size_t last = 0;
     size_t i = 0;
-    for (i = 0; i < str.size(); ++i) {
-        int64_t chunk = std::min<uint32_t>(client.chunk_size, str.size() - i);
-        substr = str.substr(i, chunk);
-        uint64_t r = xxh::xxhash<64>(substr);
+    hash_r hr;
+    size_t L = std::min<uint32_t>(client.chunk_size, str.size() - i);
+    uint64_t r_block = hr.r_block(buf, i, L);
+    if (client.R.find(r_block) != client.R.end()) {
+        substr = str.substr(i, L);
+        uint64_t h = xxh::xxhash<64>(substr);
+        if (client.H.find(h) != client.H.find(h)) {
+            size_t index = client.H[h];
+            int overlap = 0;
+            if (last <= i) {
+                dd.matched_blocks.push_back({index, i + page_offset});
+                last = i + L;
+            } else {
+                overlap = 1;
+            }
+            if (i > data_offset)
+                dd.data_blocks.push_back({data_offset + page_offset,
+                        str.substr(data_offset, i - data_offset)});
+            if (overlap == 0)
+                data_offset = i + L;
+        }
+    }
+    for (i = 1; i < str.size(); ++i) {
+        uint32_t chunk = std::min<uint32_t>(client.chunk_size, str.size() - i);
+        uint64_t r = hr.r(buf, i, chunk);
         if (client.R.find(r) != client.R.end()) {
-            uint64_t h = client.hash_h(substr);
+            substr = str.substr(i, chunk);
+            uint64_t h = xxh::xxhash<64>(substr);
             //if (client.H[h] != 0) {
             if (client.H.find(h) != client.H.end()) {
                 size_t index = client.H[h];
