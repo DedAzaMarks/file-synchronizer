@@ -94,8 +94,7 @@ public:
             while (file) {
                  file.read(buffer.get(), bufferSize);
                  sz = file.gcount();
-                 std::string str(buffer.get(), sz);
-                 compute_diff(dd, client, buffer, str, page * bufferSize);
+                 compute_diff(dd, client, buffer, sz, page * bufferSize);
                  page++;
             }
             file.close();

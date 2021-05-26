@@ -64,14 +64,14 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, si
                 }
                 if (i > data_offset)
                     dd.data_blocks.push_back({data_offset + page_offset,
-                            str.substr(data_offset, i - data_offset)});
+                            std::string(buf.get() + data_offset, i - data_offset)});
                 if (overlap == 0)
                     data_offset = i + chunk;
             }
         }
     }
     if (i != data_offset)
-        dd.data_blocks.push_back({data_offset + page_offset, str.substr(data_offset, i - data_offset)});
+        dd.data_blocks.push_back({data_offset + page_offset, std::string(buf.get() + data_offset, i - data_offset)});
 }
 
 void reconstruct_data(char* filename, DiffData& data,
