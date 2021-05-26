@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include <unordered_map>
-#include <string>
 #include "xxhash.c"
 #include "types.h"
 #include "hash.cpp"
