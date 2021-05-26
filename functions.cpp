@@ -133,4 +133,3 @@ void reconstruct_data(char* filename, DiffData& data,
     // WRITE FILE
     out.close();
 }
-

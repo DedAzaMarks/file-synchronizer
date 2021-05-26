@@ -114,7 +114,7 @@ int main(int argc, char* argv[]) {
     std::cout << "RECEIVED: " << receive_dd(ss, dd) << '\n';
 
 
-    // reconstruct data
+    reconstruct_data(argv[3], dd, chunk_size, bufferSize);
 
     ss.sendBytes(&end, 1);
 
