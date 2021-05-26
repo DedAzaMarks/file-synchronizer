@@ -27,26 +27,28 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, st
     size_t last = 0;
     size_t i = 0;
     hash_r hr;
-    size_t L = std::min<uint32_t>(client.chunk_size, str.size() - i);
-    uint64_t r_block = hr.r_block(buf, i, L);
-    if (client.R.find(r_block) != client.R.end()) {
-        substr = str.substr(i, L);
-        uint64_t h = xxh::xxhash<64>(substr);
-        if (client.H.find(h) != client.H.find(h)) {
-            size_t index = client.H[h];
-            int overlap = 0;
-            if (last <= i) {
-                dd.matched_blocks.push_back({index, i + page_offset});
-                last = i + L;
-            } else {
-                overlap = 1;
-            }
-            if (i > data_offset)
-                dd.data_blocks.push_back({data_offset + page_offset,
-                        str.substr(data_offset, i - data_offset)});
-            if (overlap == 0)
-                data_offset = i + L;
-        }
+    {
+      size_t L = std::min<uint32_t>(client.chunk_size, str.size() - i);
+      uint64_t r_block = hr.r_block(buf, i, L);
+      if (client.R.find(r_block) != client.R.end()) {
+          substr = str.substr(i, L);
+          uint64_t h = xxh::xxhash<64>(substr);
+          if (client.H.find(h) != client.H.end()) {
+              size_t index = client.H[h];
+              int overlap = 0;
+              if (last <= i) {
+                  dd.matched_blocks.push_back({index, i + page_offset});
+                  last = i + L;
+              } else {
+                  overlap = 1;
+              }
+              if (i > data_offset)
+                  dd.data_blocks.push_back({data_offset + page_offset,
+                          str.substr(data_offset, i - data_offset)});
+              if (overlap == 0)
+                  data_offset = i + L;
+          }
+      }
     }
     for (i = 1; i < str.size(); ++i) {
         uint32_t chunk = std::min<uint32_t>(client.chunk_size, str.size() - i);
