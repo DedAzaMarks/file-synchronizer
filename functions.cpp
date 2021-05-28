@@ -18,7 +18,7 @@ size_t receive(Poco::Net::StreamSocket& ss, void* buffer, size_t sz) {
 }
 
 Client file_to_hash(std::ifstream& file, uint32_t chunk_size, size_t bufferSize) {
-    std::unique_ptr<char[]> buffer(new char[bufferSize]);
+    std::shared_ptr<char[]> buffer(new char[bufferSize]);
     uint32_t sz = 0;
     Client client(chunk_size);
     uint32_t page = 0;
@@ -31,7 +31,7 @@ Client file_to_hash(std::ifstream& file, uint32_t chunk_size, size_t bufferSize)
     return client;
 }
 
-void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, size_t sz, size_t page_offset) {
+void compute_diff(std::shared_ptr<DiffData> dd, Client& client, std::shared_ptr<char[]> buf, size_t sz, size_t page_offset) {
     size_t data_offset = 0;
     size_t last = 0;
     size_t i = 0;
@@ -44,13 +44,13 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, si
             size_t index = client.H[h];
             int overlap = 0;
             if (last <= i) {
-                dd.matched_blocks.push_back({index, i + page_offset});
+                dd->matched_blocks.push_back({index, i + page_offset});
                 last = i + L;
             } else {
                 overlap = 1;
             }
             if (i > data_offset)
-                dd.data_blocks.push_back({data_offset + page_offset,
+                dd->data_blocks.push_back({data_offset + page_offset,
                         std::string(buf.get() + data_offset, i - data_offset)});
             if (overlap == 0)
                 data_offset = i + L;
@@ -66,13 +66,13 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, si
                 size_t index = client.H[h];
                 int overlap = 0;
                 if (last <= i) {
-                    dd.matched_blocks.push_back({index, i + page_offset});
+                    dd->matched_blocks.push_back({index, i + page_offset});
                     last = i + chunk;
                 } else {
                     overlap = 1;
                 }
                 if (i > data_offset)
-                    dd.data_blocks.push_back({data_offset + page_offset,
+                    dd->data_blocks.push_back({data_offset + page_offset,
                             std::string(buf.get() + data_offset, i - data_offset)});
                 if (overlap == 0)
                     data_offset = i + chunk;
@@ -80,7 +80,7 @@ void compute_diff(DiffData& dd, Client& client, std::unique_ptr<char[]>& buf, si
         }
     }
     if (i != data_offset)
-        dd.data_blocks.push_back({data_offset + page_offset, std::string(buf.get() + data_offset, i - data_offset)});
+        dd->data_blocks.push_back({data_offset + page_offset, std::string(buf.get() + data_offset, i - data_offset)});
 }
 
 void reconstruct_data(char* filename, DiffData& data,

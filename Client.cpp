@@ -18,7 +18,7 @@ public:
         chunk_size = ch_sz;
     }
 
-    void hash_tbl (std::unique_ptr<char[]>& buf, size_t sz, uint32_t shift) {
+    void hash_tbl (std::shared_ptr<char[]>& buf, size_t sz, uint32_t shift) {
         hash_r hr;
         size_t i = 0;
         for (i = 0; i < sz; i += chunk_size) {

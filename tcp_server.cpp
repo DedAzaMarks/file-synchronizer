@@ -5,6 +5,7 @@
 #include <fstream>
 #include <memory>
 #include <filesystem>
+#include <thread>
 
 #include "types.h"
 #include "functions.cpp"
@@ -96,19 +97,24 @@ public:
             {
 
                 TimerGuard tg("compute_diff");
-                std::ifstream file(fileName.get(), std::ios::in | std::ios::binary);
+                std::ifstream file(std::string(fileName.get(), sz), std::ios::in | std::ios::binary);
                 Client client(chunk_size);
                 std::cout << "RECEIVED: " << (sum += receive_hash_tbl(client, ss)) << '\n';
-                std::unique_ptr<char[]> buffer(new char[bufferSize]);
                 size_t page = 0;
+                std::vector<std::thread> threads;
                 while (file) {
+                    std::shared_ptr<char[]> buffer(new char[bufferSize]);
+                    std::shared_ptr<DiffData> dd_part(new DiffData);
                     file.read(buffer.get(), bufferSize);
                     sz = file.gcount();
                     if (sz == 0) {
                         continue;
                     }
-                    compute_diff(dd, client, buffer, sz, page * bufferSize);
+                    threads.emplace_back(std::thread(compute_diff, dd_part, std::ref(client), buffer, sz, page * bufferSize));
                     page++;
+                }
+                for (auto& th : threads) {
+                    th.join();
                 }
                 file.close();
             }
@@ -129,7 +135,7 @@ public:
     }
 };
 
-int main(int argc, char* argv[]) {
+int main() {
     Poco::Net::TCPServer srv(new Poco::Net::TCPServerConnectionFactoryImpl<Server>(), 6101);
     srv.start();
     std::cout << "Server started at port: " << srv.socket().address().port() << '\n';
