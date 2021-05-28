@@ -72,11 +72,15 @@ public:
                 std::cerr << "Client err\n";
                 return;
             }
+            std::string path = "/home/maxim/Documents/project/test/";
+            for (const auto & entry : std::filesystem::directory_iterator(path))
+                std::cout << entry.path() << std::endl;
+
             sum += receive(ss, &sz, 4);
             std::unique_ptr<char[]> fileName(new char[sz]);
             sum += receive(ss, fileName.get(), sz);
             if (!std::filesystem::exists(std::string(fileName.get(), sz))) {
-                ss.sendBytes(&e, 1);
+                            ss.sendBytes(&e, 1);
                 return;
             } else {
                 ss.sendBytes(&b, 1);
