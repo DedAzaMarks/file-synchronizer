@@ -8,6 +8,7 @@
 
 #include "types.h"
 #include "functions.cpp"
+#include "time_log.cpp"
 
 using std::filesystem::path;
 
@@ -91,24 +92,32 @@ public:
             sum += receive(ss, &chunk_size, 4);
             sum += receive(ss, &bufferSize, 8);
 
-            std::ifstream file(fileName.get(), std::ios::in | std::ios::binary);
-            Client client(chunk_size);
-            std::cout << "RECEIVED: " << (sum += receive_hash_tbl(client, ss)) << '\n';
             DiffData dd;
-            std::unique_ptr<char[]> buffer(new char[bufferSize]);
-            size_t page = 0;
-            while (file) {
-                 file.read(buffer.get(), bufferSize);
-                 sz = file.gcount();
-                 if (sz == 0) {
-                     continue;
-                 }
-                 compute_diff(dd, client, buffer, sz, page * bufferSize);
-                 page++;
-            }
-            file.close();
+            {
 
-            std::cout << send_dd(dd, ss) << "\n";
+                TimerGuard tg("compute_diff");
+                std::ifstream file(fileName.get(), std::ios::in | std::ios::binary);
+                Client client(chunk_size);
+                std::cout << "RECEIVED: " << (sum += receive_hash_tbl(client, ss)) << '\n';
+                std::unique_ptr<char[]> buffer(new char[bufferSize]);
+                size_t page = 0;
+                size_t sdfghj = 0;
+                while (file) {
+                    file.read(buffer.get(), bufferSize);
+                    sz = file.gcount();
+                    if (sz == 0) {
+                        continue;
+                    }
+                    sdfghj += compute_diff(dd, client, buffer, sz, page * bufferSize);
+                    page++;
+                }
+                file.close();
+                std::cout << "H: " << sdfghj;
+            }
+            {
+                TimerGuard tg("send");
+                std::cout << send_dd(dd, ss) << "\n";
+            }
 
             sum += receive(ss, &e, 1);
             if (e == end) {
