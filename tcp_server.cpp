@@ -18,16 +18,16 @@ size_t receive_hash_tbl(Client& client, Poco::Net::StreamSocket& ss) {
     uint64_t k = 0;
     size_t v = 0;
     size_t sum = 0;
-    sum += ss.receiveBytes(&n, 4);
+    sum += receive(ss, &n, 4);
     while(n--) {
-        sum += ss.receiveBytes(&k, 8);
-        sum += ss.receiveBytes(&v, 8);
+        sum += receive(ss, &k, 8);
+        sum += receive(ss, &v, 8);
         client.R[k] = v;
     }
-    sum += ss.receiveBytes(&n, 4);
+    sum += receive(ss, &n, 4);
     while(n--) {
-        sum += ss.receiveBytes(&k, 8);
-        sum += ss.receiveBytes(&v, 8);
+        sum += receive(ss, &k, 8);
+        sum += receive(ss, &v, 8);
         client.H[k] = v;
     }
     return sum;
@@ -60,20 +60,22 @@ public:
 
     void run() {
         uint32_t b = 0, e = 1;
+        size_t sum = 0;
         Poco::Net::StreamSocket& ss = socket();
         try {
             //size_t sz = ss.receiveBytes(&b, 1);
             uint32_t sz = 0;
-            ss.receiveBytes(&b, 4);
+            //sum += receive(ss, &b, 4);
+            sum += receive(ss, &b, 4);
             std::cout << "begin\n";
             if (b == end) {
                 std::cerr << "Client err\n";
                 return;
             }
-            ss.receiveBytes(&sz, 4);
+            sum += receive(ss, &sz, 4);
             std::unique_ptr<char[]> fileName(new char[sz]);
-            ss.receiveBytes(fileName.get(), sz);
-            if (!std::filesystem::exists(fileName.get())) {
+            sum += receive(ss, fileName.get(), sz);
+            if (!std::filesystem::exists(std::string(fileName.get(), sz))) {
                 ss.sendBytes(&e, 1);
                 return;
             } else {
@@ -82,12 +84,12 @@ public:
 
             uint32_t chunk_size = 0;
             size_t bufferSize = 0;
-            ss.receiveBytes(&chunk_size, 4);
-            ss.receiveBytes(&bufferSize, 8);
+            sum += receive(ss, &chunk_size, 4);
+            sum += receive(ss, &bufferSize, 8);
 
             std::ifstream file(fileName.get(), std::ios::in | std::ios::binary);
             Client client(chunk_size);
-            std::cout << "RECEIVED: " << receive_hash_tbl(client, ss) << '\n';
+            std::cout << "RECEIVED: " << (sum += receive_hash_tbl(client, ss)) << '\n';
             DiffData dd;
             std::unique_ptr<char[]> buffer(new char[bufferSize]);
             size_t page = 0;
@@ -104,7 +106,7 @@ public:
 
             std::cout << send_dd(dd, ss) << "\n";
 
-            sz = ss.receiveBytes(&e, 1);
+            sum += receive(ss, &e, 1);
             if (e == end) {
                 std::cout << "OK\n";
             } else {

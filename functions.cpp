@@ -7,6 +7,16 @@
 #include "Client.cpp"
 #include "types.h"
 
+size_t receive(Poco::Net::StreamSocket& ss, void* buffer, size_t sz) {
+    size_t tmp = 0;
+    char* buf = static_cast<char*>(buffer);
+    while (tmp != sz) {
+        tmp += ss.receiveBytes(buf+tmp, sz-tmp);
+    }
+
+    return tmp;
+}
+
 Client file_to_hash(std::ifstream& file, uint32_t chunk_size, size_t bufferSize) {
     std::unique_ptr<char[]> buffer(new char[bufferSize]);
     uint32_t sz = 0;
