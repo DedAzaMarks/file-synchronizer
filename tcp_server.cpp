@@ -101,18 +101,15 @@ public:
                 std::cout << "RECEIVED: " << (sum += receive_hash_tbl(client, ss)) << '\n';
                 std::unique_ptr<char[]> buffer(new char[bufferSize]);
                 size_t page = 0;
-                size_t sdfghj = 0;
                 while (file) {
                     file.read(buffer.get(), bufferSize);
                     sz = file.gcount();
                     if (sz == 0) {
                         continue;
                     }
-                    sdfghj += compute_diff(dd, client, buffer, sz, page * bufferSize);
                     page++;
                 }
                 file.close();
-                std::cout << "H: " << sdfghj;
             }
             {
                 TimerGuard tg("send");
