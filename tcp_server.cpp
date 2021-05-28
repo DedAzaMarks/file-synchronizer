@@ -107,6 +107,7 @@ public:
                     if (sz == 0) {
                         continue;
                     }
+                    compute_diff(dd, client, buffer, sz, page * bufferSize);
                     page++;
                 }
                 file.close();
