@@ -17,4 +17,4 @@ sync_release: send_to_server.cpp
 	${CC} ${RELEASE} ${CFLAGS} ${SANITIZE} send_to_server.cpp ${LIBS} -o sync
 
 sync_debug: send_to_server.cpp
-	${CC} ${DEBUG} ${CFLAGS} s${SANITIZE} end_to_server.cpp ${LIBS} -o sync
+	${CC} ${DEBUG} ${CFLAGS} ${SANITIZE} send_to_server.cpp ${LIBS} -o sync
