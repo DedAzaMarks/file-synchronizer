@@ -14,7 +14,7 @@ server_debug: tcp_server.cpp
 	${CC} ${DEBUG} ${CFLAGS} ${SANITIZE} tcp_server.cpp ${LIBS} -o server
 
 sync_release: send_to_server.cpp
-	${CC} ${RELEASE} ${CFLAGS} send_to_server.cpp ${LIBS} -o sync
+	${CC} ${RELEASE} ${CFLAGS} ${SANITIZE} send_to_server.cpp ${LIBS} -o sync
 
 sync_debug: send_to_server.cpp
-	${CC} ${DEBUG} ${CFLAGS} send_to_server.cpp ${LIBS} -o sync
+	${CC} ${DEBUG} ${CFLAGS} s${SANITIZE} end_to_server.cpp ${LIBS} -o sync
