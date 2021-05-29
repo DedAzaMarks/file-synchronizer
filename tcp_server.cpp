@@ -93,7 +93,7 @@ public:
             {
 
                 TimerGuard tg("compute_diff");
-                std::ifstream file(fileName.get(), std::ios::in | std::ios::binary);
+                std::ifstream file(std::string(fileName.get(), sz), std::ios::in | std::ios::binary);
                 Client client(chunk_size);
                 std::cout << "RECEIVED: " << (sum += receive_hash_tbl(client, ss)) << '\n';
                 std::unique_ptr<char[]> buffer(new char[bufferSize]);
