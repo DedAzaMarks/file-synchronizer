@@ -129,7 +129,7 @@ public:
     }
 };
 
-int main(int argc, char* argv[]) {
+int main() {
     Poco::Net::TCPServer srv(new Poco::Net::TCPServerConnectionFactoryImpl<Server>(), 6101);
     srv.start();
     std::cout << "Server started at port: " << srv.socket().address().port() << '\n';
