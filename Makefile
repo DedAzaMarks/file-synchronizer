@@ -1,20 +1,22 @@
-CC=g++
-CFLAGS=-Wall -Werror -Wextra -std=c++17
-SANITIZE=-fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all
-RELEASE=-O3
-DEBUG=-O0 -g
-LIBS=-lPocoNet -lPocoFoundation
+CC = g++
+CFLAGS = -Wall -Werror -Wextra -std=c++17 
+SANITIZE = -fsanitize=address -fsanitize=undefined -fno-sanitize-recover=all
+LIBS = -lPocoNet -lPocoFoundation
 
-all: server_release sync_release
+RELEASE = ${CC} -O3 ${CFLAGS}
+DEBUG = ${CC} -O0 -g ${CFALGS} ${SANITIZE} 
 
-server_release: tcp_server.cpp
-	${CC} ${RELEASE} ${CFLAGS} ${SANITIZE} tcp_server.cpp ${LIBS} -o server
+sync_release: FSyncClient.cpp 
+	${RELEASE} FSyncClient.cpp ${LIBS} -o sync
 
-server_debug: tcp_server.cpp
-	${CC} ${DEBUG} ${CFLAGS} ${SANITIZE} tcp_server.cpp ${LIBS} -o server
+server_release: FSyncServer.cpp
+	${RELEASE} FSyncServer.cpp ${LIBS} -o server
 
-sync_release: send_to_server.cpp
-	${CC} ${RELEASE} ${CFLAGS} ${SANITIZE} send_to_server.cpp ${LIBS} -o sync
-
-sync_debug: send_to_server.cpp
-	${CC} ${DEBUG} ${CFLAGS} ${SANITIZE} send_to_server.cpp ${LIBS} -o sync
+# functions.o: functions.cpp
+# 	${RELEASE} -c functions.cpp -lPocoNet
+# 
+# Types.o: Types.cpp
+# 	${RELEASE} -c Types.cpp -lPocoFoundations
+# 
+# Hasher.o: Hasher.cpp Types.o
+# 	${RELEASE} -c Hasher.cpp Types.o
