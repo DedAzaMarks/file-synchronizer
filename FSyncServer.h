@@ -51,13 +51,13 @@ class FSyncServer {
             if (r.find(hasher.r_block(v, i, L)) != r.end()) {
                 u64 hashH = hasher.h(v.data() + i, L);
                 if (h.find(hashH) != h.end()) {
-                    bool overlap = 0;
+                    u8 overlap = 0;
                     if (last <= i) {
                         MatchedBlock mb = {h[hashH], i + pageOffset};
                         dd.matchedBlocks.push_back(mb);
                         last = i + L;
                     } else {
-                        overlap = true;
+                        overlap = 1;
                     }
                     if (i > dataOffset) {
                         std::vector<char>::const_iterator start = v.begin() + pageOffset;
@@ -75,13 +75,13 @@ class FSyncServer {
                 if (r.find(hasher.r(v, i, L)) != r.end()) {
                     u64 hashH = hasher.h(v.data() + i, L);
                     if (h.find(hashH) != h.end()) {
-                        bool overlap = 0;
+                        u8 overlap = 0;
                         if (last <= i) {
                             MatchedBlock mb = {h[hashH], i + pageOffset};
                             dd.matchedBlocks.push_back(mb);
                             last = i + L;
                         } else {
-                            overlap = true;
+                            overlap = 1;
                         }
                         if (i > dataOffset) {
                             std::vector<char>::const_iterator start = v.begin() + pageOffset;

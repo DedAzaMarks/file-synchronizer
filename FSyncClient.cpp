@@ -21,8 +21,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Failed to open " << fileName << "\n";
         return 1;
     }
-    constexpr u32 pageSize = 1024 * 1024 * 64;
-    u32 chunkSize = (argc < 4 ? 4096 : std::atoi(argv[3]));
+    constexpr u32 pageSize = 64 * 1024 * 1024;
+    u32 chunkSize = (argc < 4 ? 2048 : std::atoi(argv[3]));
 
     u32 init = 0, ok = 0, err = 251;
 
