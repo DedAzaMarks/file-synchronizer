@@ -9,14 +9,12 @@ DEBUG = ${CC} -O0 -g ${CFALGS} ${SANITIZE}
 sync_release: FSyncClient.cpp 
 	${RELEASE} FSyncClient.cpp ${LIBS} -o sync
 
+sync_debug: FSyncClient.cpp
+	${DEBUG} FSyncClient.cpp ${LIBS} -o sync
+
 server_release: FSyncServer.cpp
 	${RELEASE} FSyncServer.cpp ${LIBS} -o server
 
-# functions.o: functions.cpp
-# 	${RELEASE} -c functions.cpp -lPocoNet
-# 
-# Types.o: Types.cpp
-# 	${RELEASE} -c Types.cpp -lPocoFoundations
-# 
-# Hasher.o: Hasher.cpp Types.o
-# 	${RELEASE} -c Hasher.cpp Types.o
+server_debug: FSyncServer.cpp
+	${DEBUG} FSyncServer.cpp ${LIBS} -o server
+
