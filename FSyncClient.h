@@ -1,4 +1,7 @@
+#include <cstdio>
+#include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 #include <vector>
 
@@ -10,9 +13,9 @@
 class FSyncClient {
    private:
     std::string fileName;
-    u32 chunkSize, pageSize;
+    u64 chunkSize, pageSize;
     Hasher hasher = Hasher(0);  // seed
-    std::unordered_map<u64, u64> r, h;
+    std::unordered_multimap<u64, u64> r, h;
     DiffData dd;
 
     Poco::Net::StreamSocket& ss;
@@ -23,7 +26,7 @@ class FSyncClient {
     }
 
    public:
-    FSyncClient(std::string&& _fileName, u32 _chunkSize, u32 _pageSize,
+    FSyncClient(std::string&& _fileName, u64 _chunkSize, u64 _pageSize,
                 Poco::Net::StreamSocket& _ss)
         : fileName(_fileName), chunkSize(_chunkSize), pageSize(_pageSize), ss(_ss) {}
 
@@ -33,14 +36,14 @@ class FSyncClient {
         u64 page = 0;
         while (file) {
             file.read(buf.data(), pageSize);
-            u32 sz = file.gcount();
+            u64 sz = file.gcount();
             if (sz == 0) {
                 break;
             }
             for (u64 i = 0; i < sz; i += chunkSize) {
-                u32 L = std::min<u32>(chunkSize, sz - i);
-                r[hasher.r_block(buf, i, L)] = i / chunkSize + (pageSize * page) / chunkSize;
-                h[hasher.h(buf.data() + i, L)] = i / chunkSize + (pageSize * page) / chunkSize;
+                u64 L = std::min<u64>(chunkSize, sz - i);
+                r.insert({hasher.r_block(buf, i, L), i / chunkSize + (pageSize * page) / chunkSize});
+                h.insert({hasher.h(buf.data() + i, L), i / chunkSize + (pageSize * page) / chunkSize});
             }
             ++page;
         }
@@ -60,6 +63,7 @@ class FSyncClient {
             send(ss, &k, sizeof(k));
             send(ss, &v, sizeof(v));
         }
+        std::cout << "Sent: r=" << r.size() << " h=" << h.size () << "\n";
         clearHash();
     }
 
@@ -87,10 +91,13 @@ class FSyncClient {
             mb.offset = offset;
             dd.matchedBlocks.push_back(mb);
         }
+        std::cout << "DB: " << dbSize << "\n";
+        std::cout << "MB: " << mbSize << "\n";
     }
 
     void ReconstructFile() {
-        std::ofstream out("NEW FILE", std::ios::out | std::ios::binary | std::ios::trunc);
+        std::string newFileName = "~" + fileName + "~";
+        std::ofstream out(newFileName, std::ios::out | std::ios::binary | std::ios::trunc);
         u64 i = 0;
         u64 j = 0;
         while (i < dd.dataBlocks.size() && j < dd.matchedBlocks.size()) {
@@ -101,13 +108,13 @@ class FSyncClient {
                 std::ifstream in(fileName, std::ios::ate | std::ios::binary);
                 u64 fileSize = in.tellg();
                 in.close();
-                in = std::ifstream(std::in | std::ios::binary);
-                u32 sz;
+                in = std::ifstream(fileName, std::ios::in | std::ios::binary);
+                u64 sz;
                 if ((fileSize / pageSize) * pageSize > dd.matchedBlocks[j].index * chunkSize) {
-                    sz = std::min<u32>(chunkSize, (fileSize / pageSize) * pageSize -
+                    sz = std::min<u64>(chunkSize, (fileSize / pageSize) * pageSize -
                                                       dd.matchedBlocks[j].index * chunkSize);
                 } else {
-                    sz = std::min<u32>(chunkSize, fileSize - dd.matchedBlocks[j].index * chunkSize);
+                    sz = std::min<u64>(chunkSize, fileSize - dd.matchedBlocks[j].index * chunkSize);
                 }
                 std::vector<char> buf(sz);
                 in.seekg(dd.matchedBlocks[j].index * chunkSize);
@@ -126,13 +133,13 @@ class FSyncClient {
             std::ifstream in(fileName, std::ios::ate | std::ios::binary);
             u64 fileSize = in.tellg();
             in.close();
-            in = std::ifstream(std::in | std::ios::binary);
-            u32 sz;
+            in = std::ifstream(fileName, std::ios::in | std::ios::binary);
+            u64 sz;
             if ((fileSize / pageSize) * pageSize > dd.matchedBlocks[j].index * chunkSize) {
-                sz = std::min<u32>(chunkSize, (fileSize / pageSize) * pageSize -
+                sz = std::min<u64>(chunkSize, (fileSize / pageSize) * pageSize -
                                                   dd.matchedBlocks[j].index * chunkSize);
             } else {
-                sz = std::min<u32>(chunkSize, fileSize - dd.matchedBlocks[j].index * chunkSize);
+                sz = std::min<u64>(chunkSize, fileSize - dd.matchedBlocks[j].index * chunkSize);
             }
             std::vector<char> buf(sz);
             in.seekg(dd.matchedBlocks[j].index * chunkSize);
@@ -142,5 +149,10 @@ class FSyncClient {
             ++j;
         }
         out.close();
+        std::string tmpName = std::to_string(
+        hasher.h(fileName.data(), fileName.size()));
+        std::rename(fileName.data(), tmpName.data());
+        std::rename(newFileName.data(), fileName.data());
+        std::rename(tmpName.data(), newFileName.data());
     }
 };
