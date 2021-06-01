@@ -35,7 +35,7 @@ class FSyncClient {
             file.read(buf.data(), pageSize);
             u32 sz = file.gcount();
             if (sz == 0) {
-                continue;
+                break;
             }
             for (u64 i = 0; i < sz; i += chunkSize) {
                 u32 L = std::min<u32>(chunkSize, sz - i);

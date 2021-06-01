@@ -11,13 +11,36 @@ class FSyncServer {
     std::string fileName;
     u64 chunkSize, pageSize;
     Hasher hasher = Hasher(0);  // seed
-    std::unordered_map<u64, u64> r, h;
+    std::unordered_multimap<u64, u64> r, h;
     DiffData dd;
 
     Poco::Net::StreamSocket& ss;
 
+    std::unordered_multimap<u64, u64>::iterator findInHashTable(
+        std::unordered_multimap<u64, u64>& um,
+        u64 key,
+        std::pair<
+            std::unordered_multimap<u64, u64>::iterator,
+            std::unordered_multimap<u64, u64>::iterator
+        > vals) {
+        auto range = um.equal_range(key);
+        if (range.first == um.end() && range.second == um.end()) {
+            return um.end();
+        }
+        for (auto it = range.first; it != range.second; ++it) {
+            for (auto jt = vals.first; jt != vals.second; ++jt) {
+                u64 val = jt->second;
+                if (it->second == val) {
+                    return it;
+                }
+            }
+        }
+        return um.end();
+
+    }
+
    public:
-    FSyncServer(std::string _fileName, u32 _chunkSize, u32 _pageSize, Poco::Net::StreamSocket& _ss)
+    FSyncServer(std::string _fileName, u64 _chunkSize, u64 _pageSize, Poco::Net::StreamSocket& _ss)
         : fileName(_fileName), chunkSize(_chunkSize), pageSize(_pageSize), ss(_ss) {}
 
     void GetHash() {
@@ -26,34 +49,40 @@ class FSyncServer {
         while (size--) {
             receive(ss, &k, sizeof(k));
             receive(ss, &v, sizeof(v));
-            r[k] = v;
+            r.insert({k, v});
         }
         receive(ss, &size, sizeof(size));
         while (size--) {
             receive(ss, &k, sizeof(k));
             receive(ss, &v, sizeof(v));
-            h[k] = v;
+            h.insert({k, v});
         }
+        std::cout << "Got: r=" << r.size() << " h=" << h.size() << "\n";
     }
 
     void ComputeDD() {
-        std::ifstream file(fileName, std::ios::in | std::ios::binary);
         std::vector<char> v(pageSize);
+        std::ifstream file(fileName, std::ios::ate | std::ios::binary);
+        u64 fileSize = file.tellg();
+        file.close();
+        file = std::ifstream(fileName, std::ios::in | std::ios::binary);
         u64 page = 0;
         while (file) {
             file.read(v.data(), pageSize);
             u64 sz = file.gcount();
             if (sz == 0) {
-                continue;
+                break;
             }
             u64 i = 0, last = 0, pageOffset = page * pageSize, dataOffset = 0;
-            u32 L = std::min<u32>(chunkSize, sz - i);
-            if (r.find(hasher.r_block(v, i, L)) != r.end()) {
+            u64 L = std::min<u64>(chunkSize, sz - i);
+            u64 hashR = hasher.r_block(v, i, L);
+            if (r.find(hashR) != r.end()) {
                 u64 hashH = hasher.h(v.data() + i, L);
-                if (h.find(hashH) != h.end()) {
+                auto it = findInHashTable(h, hashH, r.equal_range(hashR));
+                if (it != h.end()) {
                     u8 overlap = 0;
                     if (last <= i) {
-                        MatchedBlock mb = {h[hashH], i + pageOffset};
+                        MatchedBlock mb = {it->second, i + pageOffset};
                         dd.matchedBlocks.push_back(mb);
                         last = i + L;
                     } else {
@@ -61,7 +90,7 @@ class FSyncServer {
                     }
                     if (i > dataOffset) {
                         std::vector<char>::const_iterator start = v.begin() + pageOffset;
-                        std::vector<char>::const_iterator finish = v.begin() + i - dataOffset;
+                        std::vector<char>::const_iterator finish = v.begin() + i;
                         DataBlock db = {dataOffset + pageOffset, std::vector<char>(start, finish)};
                         dd.dataBlocks.push_back(db);
                     }
@@ -71,13 +100,15 @@ class FSyncServer {
                 }
             }
             for (i = 1; i < sz; ++i) {
-                L = std::min<u32>(chunkSize, sz - i);
-                if (r.find(hasher.r(v, i, L)) != r.end()) {
+                L = std::min<u64>(chunkSize, sz - i);
+                hashR = hasher.r(v, i, L);
+                if (r.find(hashR) != r.end()) {
                     u64 hashH = hasher.h(v.data() + i, L);
-                    if (h.find(hashH) != h.end()) {
+                    auto it = findInHashTable(h, hashH, r.equal_range(hashR));
+                    if (it != h.end()) {
                         u8 overlap = 0;
                         if (last <= i) {
-                            MatchedBlock mb = {h[hashH], i + pageOffset};
+                            MatchedBlock mb = {it->second, i + pageOffset};
                             dd.matchedBlocks.push_back(mb);
                             last = i + L;
                         } else {
@@ -85,7 +116,7 @@ class FSyncServer {
                         }
                         if (i > dataOffset) {
                             std::vector<char>::const_iterator start = v.begin() + pageOffset;
-                            std::vector<char>::const_iterator finish = v.begin() + i - dataOffset;
+                            std::vector<char>::const_iterator finish = v.begin() + i;
                             DataBlock db = {dataOffset + pageOffset,
                                             std::vector<char>(start, finish)};
                             dd.dataBlocks.push_back(db);
@@ -98,13 +129,15 @@ class FSyncServer {
             }
             if (i != dataOffset) {
                 std::vector<char>::const_iterator start = v.begin() + dataOffset;
-                std::vector<char>::const_iterator finish = v.begin() + i - dataOffset;
+                std::vector<char>::const_iterator finish = v.begin() + i;
                 DataBlock db = {dataOffset + pageOffset, std::vector<char>(start, finish)};
                 dd.dataBlocks.push_back(db);
             }
             ++page;
         }
         file.close();
+        std::cout << "DB: " << dd.dataBlocks.size() << "\n";
+        std::cout << "MB: " << dd.matchedBlocks.size() << "\n";
     }
 
     void SendDD() {
