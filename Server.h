@@ -35,7 +35,7 @@ class Server : public Poco::Net::TCPServerConnection {
             send(ss, &ok, sizeof(ok));
         }
 
-        u32 chunkSize = 0, pageSize = 0;
+        u64 chunkSize = 0, pageSize = 0;
         receive(ss, &chunkSize, sizeof(chunkSize));
         receive(ss, &pageSize, sizeof(pageSize));
         {
