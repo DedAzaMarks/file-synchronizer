@@ -98,8 +98,10 @@ class FSyncClient {
                 out.write(dd.dataBlocks[i].data.data(), dd.dataBlocks[i].data.size());
                 ++i;
             } else {
-                std::ifstream in(fileName, std::ios::in | std::ios::binary);
+                std::ifstream in(fileName, std::ios::ate | std::ios::binary);
                 u64 fileSize = in.tellg();
+                in.close();
+                in = std::ifstream(std::in | std::ios::binary);
                 u32 sz;
                 if ((fileSize / pageSize) * pageSize > dd.matchedBlocks[j].index * chunkSize) {
                     sz = std::min<u32>(chunkSize, (fileSize / pageSize) * pageSize -
@@ -121,8 +123,10 @@ class FSyncClient {
             ++i;
         }
         while (j < dd.matchedBlocks.size()) {
-            std::ifstream in(fileName, std::ios::in | std::ios::binary);
+            std::ifstream in(fileName, std::ios::ate | std::ios::binary);
             u64 fileSize = in.tellg();
+            in.close();
+            in = std::ifstream(std::in | std::ios::binary);
             u32 sz;
             if ((fileSize / pageSize) * pageSize > dd.matchedBlocks[j].index * chunkSize) {
                 sz = std::min<u32>(chunkSize, (fileSize / pageSize) * pageSize -
