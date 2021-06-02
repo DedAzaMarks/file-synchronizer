@@ -42,8 +42,10 @@ class FSyncClient {
             }
             for (u64 i = 0; i < sz; i += chunkSize) {
                 u64 L = std::min<u64>(chunkSize, sz - i);
-                r.insert({hasher.r_block(buf, i, L), i / chunkSize + (pageSize * page) / chunkSize});
-                h.insert({hasher.h(buf.data() + i, L), i / chunkSize + (pageSize * page) / chunkSize});
+                r.insert(
+                    {hasher.r_block(buf, i, L), i / chunkSize + (pageSize * page) / chunkSize});
+                h.insert(
+                    {hasher.h(buf.data() + i, L), i / chunkSize + (pageSize * page) / chunkSize});
             }
             ++page;
         }
@@ -63,7 +65,7 @@ class FSyncClient {
             send(ss, &k, sizeof(k));
             send(ss, &v, sizeof(v));
         }
-        std::cout << "Sent: r=" << r.size() << " h=" << h.size () << "\n";
+        std::cout << "Sent: r=" << r.size() << " h=" << h.size() << "\n";
         clearHash();
     }
 
@@ -149,8 +151,7 @@ class FSyncClient {
             ++j;
         }
         out.close();
-        std::string tmpName = std::to_string(
-        hasher.h(fileName.data(), fileName.size()));
+        std::string tmpName = std::to_string(hasher.h(fileName.data(), fileName.size()));
         std::rename(fileName.data(), tmpName.data());
         std::rename(newFileName.data(), fileName.data());
         std::rename(tmpName.data(), newFileName.data());

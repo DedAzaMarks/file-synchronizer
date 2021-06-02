@@ -17,12 +17,10 @@ class FSyncServer {
     Poco::Net::StreamSocket& ss;
 
     std::unordered_multimap<u64, u64>::iterator findInHashTable(
-        std::unordered_multimap<u64, u64>& um,
-        u64 key,
-        std::pair<
-            std::unordered_multimap<u64, u64>::iterator,
-            std::unordered_multimap<u64, u64>::iterator
-        > vals) {
+        std::unordered_multimap<u64, u64>& um, u64 key,
+        std::pair<std::unordered_multimap<u64, u64>::iterator,
+                  std::unordered_multimap<u64, u64>::iterator>
+            vals) {
         auto range = um.equal_range(key);
         if (range.first == um.end() && range.second == um.end()) {
             return um.end();
@@ -36,7 +34,6 @@ class FSyncServer {
             }
         }
         return um.end();
-
     }
 
    public:
@@ -62,10 +59,7 @@ class FSyncServer {
 
     void ComputeDD() {
         std::vector<char> v(pageSize);
-        std::ifstream file(fileName, std::ios::ate | std::ios::binary);
-        u64 fileSize = file.tellg();
-        file.close();
-        file = std::ifstream(fileName, std::ios::in | std::ios::binary);
+        std::ifstream file = std::ifstream(fileName, std::ios::in | std::ios::binary);
         u64 page = 0;
         while (file) {
             file.read(v.data(), pageSize);

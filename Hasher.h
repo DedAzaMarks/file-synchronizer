@@ -23,7 +23,9 @@ class Hasher {
         r2 %= mod;
     }
 
-    void r_1(std::vector<char>& buf, u64 k, u64 L) { r1 = (r1 - buf[k - 1] + buf[k + L - 1]) % mod; }
+    void r_1(std::vector<char>& buf, u64 k, u64 L) {
+        r1 = (r1 - buf[k - 1] + buf[k + L - 1]) % mod;
+    }
 
     void r_2(std::vector<char>& buf, u64 k, u64 L) { r2 = (r2 - L * buf[k - 1] + r1) % mod; }
 
